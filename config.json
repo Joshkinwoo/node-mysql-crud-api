@@ -5,5 +5,6 @@
         "user": "root",
         "password": "",
         "database": "node-mysql-crud-api"
-    }
+    },
+    "secret": "2098024c-a52c-4f4d-8c13-6179135312c6"
 }
