@@ -1,13 +1,15 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const Joi = require('joi');
 const validateRequest = require('_middleware/validate-request');
 const Role = require('_helpers/role');
 const userService = require('./user.service');
 const authorize = require('_middleware/authorize');
+const jwt = require('jsonwebtoken');
+const config = require('config');
 
 // routes
-router.post('/authenticate', authenticateSchema, authenticate);
+router.post('/login', authenticateSchema, authenticate);
 router.post('/', registerSchema, register);
 router.get('/current', authorize(), getCurrent);
 router.get('/', authorize(), getAll);
@@ -15,6 +17,7 @@ router.get('/:id', authorize(), getById);
 //router.post('/', authorize(), registerSchema, register);
 router.put('/:id', authorize(), updateSchema, update);
 router.delete('/:id',authorize(),  _delete);
+router.post('/logout',  logout);
 
 module.exports = router;
 
@@ -33,6 +36,7 @@ function authenticate(req, res, next) {
         .then(user => res.json(user))
         .catch(next);
 }
+
 
 function registerSchema(req, res, next) {
     const schema = Joi.object({
@@ -69,13 +73,7 @@ function getById(req, res, next) {
         .then(user => res.json(user))
         .catch(next);
 }
-/*
-function create(req, res, next) {
-    userService.create(req.body)
-        .then(() => res.json({ message: 'User created' }))
-        .catch(next);
-}
-*/
+
 function updateSchema(req, res, next) {
     const schema = Joi.object({
         email: Joi.string().email().empty(''),
@@ -101,7 +99,22 @@ function _delete(req, res, next) {
         .then(() => res.json({ message: 'User deleted' }))
         .catch(next);
 }
+function logout(req, res, next) {
+    const token = req.headers.authorization.split(' ')[1];
+    userService.revokeToken(token)
+        .then(() => res.json({ message: 'Logout successful' }))
+        .catch(next);
+}
 
+
+  
+/*
+function create(req, res, next) {
+    userService.create(req.body)
+        .then(() => res.json({ message: 'User created' }))
+        .catch(next);
+}
+*/
 // schema functions
 /*
 function createSchema(req, res, next) {
@@ -128,5 +141,26 @@ function updateSchema(req, res, next) {
         confirmPassword: Joi.string().valid(Joi.ref('password')).empty('')
     }).with('password', 'confirmPassword');
     validateRequest(req, next, schema);
+}
+
+
+
+
+
+function logout(req, res) {
+    // destroy session
+    req.session.destroy(err => {
+        if (err) {
+            return res.status(500).json({ message: "Could not log out." });
+        }
+        // clear cookie
+        res.clearCookie('session');
+        res.json({ message: "Logged out successfully." });
+    });
+}
+function logout(req, res) {
+    // clear cookie
+    res.clearCookie('jwt');
+    res.json({ message: "Logged out successfully." });
 }
 */
