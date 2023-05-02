@@ -9,8 +9,7 @@ module.exports = {
   getById,
   create,
   update,
-  delete: _delete,
-  revokeToken
+  delete: _delete
 };
 
 async function authenticate({ username, password }) {
@@ -72,23 +71,11 @@ async function _delete(id) {
   await user.destroy();
 }
 
-async function revokeToken({ token, ipAddress }) {
-  const user = await db.User.findOne({ where: { token } });
-
-  // revoke token
-  if (!user) throw 'Invalid token';
-  user.refreshTokens = user.refreshTokens.filter(t => t.token !== token);
-  await user.save();
-
-  // log user out of other devices
-  await db.RefreshToken.destroy({ where: { userId: user.id, token: { [Op.ne]: token } } });
-}
-
 // helper functions
 
 function generateJwtToken(user) {
   // create a JWT token containing the user ID
-  return jwt.sign({ sub: user.id }, config.secret, { expiresIn: '1hr' });
+  return jwt.sign({ sub: user.id }, config.secret, { expiresIn: '7d' });
 }
 
 async function getUser(id) {

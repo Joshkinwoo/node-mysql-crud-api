@@ -5,24 +5,24 @@ const validateRequest = require('_middleware/validate-request');
 const Role = require('_helpers/role');
 const userService = require('./user.service');
 const authorize = require('_middleware/authorize');
-const jwt = require('jsonwebtoken');
-const config = require('config');
+//const jwt = require('jsonwebtoken');
+//const config = require('config');
 
 // routes
 router.post('/login', authenticateSchema, authenticate);
-router.post('/', registerSchema, register);
-router.get('/current', authorize(), getCurrent);
-router.get('/', authorize(), getAll);
-router.get('/:id', authorize(), getById);
-//router.post('/', authorize(), registerSchema, register);
-router.put('/:id', authorize(), updateSchema, update);
-router.delete('/:id',authorize(),  _delete);
-router.post('/logout',  logout);
+router.post('/register', registerSchema, register);
+router.get('/current', authorize, getCurrent);
+router.get('/', authorize, getAll);
+router.get('/:id', authorize, getById);
+//router.post('/', authorize, registerSchema, register);
+router.put('/:id', authorize, updateSchema, update);
+router.delete('/:id',authorize,  _delete);
+router.post('/logout',authorize,  logout);
 
 module.exports = router;
 
 // route functions
-
+  
 function authenticateSchema(req, res, next) {
     const schema = Joi.object({
         username: Joi.string().required(),
@@ -32,11 +32,26 @@ function authenticateSchema(req, res, next) {
 }
 
 function authenticate(req, res, next) {
-    userService.authenticate(req.body)
-        .then(user => res.json(user))
-        .catch(next);
-}
-
+    userService
+      .authenticate(req.body)
+      .then((user) => {
+        res.cookie("token", user.token);
+        res.json(user);
+      })
+      .catch(next);
+  }
+function logout(req, res, next) {
+    try {
+    const token = req.cookies.token;
+      if (!token) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+    res.cookie('token', { expires: new Date(0) });
+    res.status(200).json({ message: 'Logout successful' })
+    } catch (e) {
+        next();
+    }
+  }
 
 function registerSchema(req, res, next) {
     const schema = Joi.object({
@@ -99,12 +114,7 @@ function _delete(req, res, next) {
         .then(() => res.json({ message: 'User deleted' }))
         .catch(next);
 }
-function logout(req, res, next) {
-    const token = req.headers.authorization.split(' ')[1];
-    userService.revokeToken(token)
-        .then(() => res.json({ message: 'Logout successful' }))
-        .catch(next);
-}
+
 
 
   
